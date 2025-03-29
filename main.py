@@ -3,22 +3,22 @@ from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
 def getHeadersTokenBaserow():
-    #spécifier le token baserow
+    # give the baserow token
     headers_bdd = {
             'Authorization': 'Token ',
             'Content-Type': 'application/json',
         } 
     return headers_bdd
 
-#fonction qui récupère le nombre de post dans la base baserow
+# func to get the number of post in the baserow db
 def getLastPostCount():
     try:
-        #token baserow
+        # token baserow
         headers_bdd = getHeadersTokenBaserow()
-        #url de nombre post connu de baserow'
-        response_bdd = requests.get('',headers=headers_bdd)
+        # url de nombre post connu de baserow
+        response_bdd = requests.get('baserow_url',headers=headers_bdd)
         response_bdd_json = response_bdd.json()
-        #nom du champs baserow qui contient le nombre de post
+        # Name of the Baserow field that contains the number of posts.
         lastNbPost = int(response_bdd_json[''])
         return lastNbPost
     except requests.exceptions.HTTPError as errh:
@@ -27,12 +27,12 @@ def getLastPostCount():
         print ("Other error:",err)
 
 
-#fonction qui récupère le contenu de la page linkedin
+# func to get the content of linkedin page
 def getContentPage():
     try:
-        #url du profil linkedin
+        # Profil url linkedin
         url = ""
-        #user agent pour éviter le blocage de linkedin
+        # User agent to avoid LinkedIn blocking.
         user_agent = UserAgent()
         headers_linkedin = {
         'user-agent': user_agent.random,
@@ -49,14 +49,14 @@ def getContentPage():
     except Exception as err:
         print ("Other error:",err)
 
-#fonction qui insère le nombre de post dans la base baserow
+# func to insert the number of post in the baserow db.
 def insertNewCountPost(lastNbPost):
     try:
-        #token baserow
+        # token baserow
         headers_bdd = getHeadersTokenBaserow()
-        #nom du champs baserow qui contient le nombre de post
+        # The name of the Baserow field that contains the number of posts.
         data = {'': lastNbPost}
-        #url de nombre post connu de baserow
+        # URL of the known post number in Baserow.
         requests.patch('', headers=headers_bdd, json=data)
     except requests.exceptions.HTTPError as errh:
         print ("Http Error:",errh)
@@ -71,23 +71,20 @@ def main():
 
     if page.status_code == 200:
         soup = BeautifulSoup(page.content, 'html.parser')
-        #récupération des balises <p> + classe des posts pour identifier les posts
+        # Retrieving the <p> tags + class of the posts to identify the posts.
         content_post = soup.find_all('p',class_='attributed-text-segment-list__content text-color-text !text-sm whitespace-pre-wrap break-words')
-        #récupération du nombre de post sur le profile linkedin
+        # Retrieving the number of posts on the LinkedIn profile.
         currNbPost = len(content_post)
-        #si le nombre de post est différent du dernier nombre de post connu, on insère le nouveau nombre de post dans la base baserow
+        # If the number of posts is different from the last known number of posts, we insert the new number of posts into the Baserow database
         if currNbPost > lastNbPost:
             insertNewCountPost(currNbPost)
             print("New post")
             lastPost = content_post[0].text
             data = {'post': lastPost}
-            #éxécution/envoi du dernier post sur le webhook
+            # Execution/sending of the latest post to the webhook
             requests.post('',data=data)
         else:
             print("No new post")
-
-
-
 main()
 
 
